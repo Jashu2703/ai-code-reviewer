@@ -1,0 +1,67 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: reviewer
+      POSTGRES_PASSWORD: reviewer_secret
+      POSTGRES_DB: code_reviewer_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reviewer -d code_reviewer_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://reviewer:reviewer_secret@db:5432/code_reviewer_db
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-change-in-production}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-dev-webhook-secret}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY:-""}
+      LANGCHAIN_TRACING_V2: "true"
+      LANGCHAIN_PROJECT: "ai-code-reviewer"
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      ENVIRONMENT: development
+    volumes:
+      - ./backend:/app
+      - faiss_data:/app/faiss_index
+    depends_on:
+      db:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.11.1
+    restart: always
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_data:/mlflow
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri /mlflow/mlruns --default-artifact-root /mlflow/artifacts
+
+  frontend:
+    build: ./frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  faiss_data:
+  mlflow_data:
