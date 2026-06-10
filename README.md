@@ -226,6 +226,8 @@ pytest tests/ -v
 ![React](https://img.shields.io/badge/React-Frontend-cyan)
 
 ---
+<img width="488" height="697" alt="image" src="https://github.com/user-attachments/assets/e33f3108-f15b-4cb1-b67f-cb2e2bf50997" />
+<img width="1884" height="896" alt="image" src="https://github.com/user-attachments/assets/78e622c2-a304-45a9-a2fd-8b1ff6e8278c" />
 
 ## Built by
 
